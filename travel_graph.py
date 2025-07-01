@@ -139,3 +139,27 @@ class TravelGraph:
         plt.tight_layout() 
         
         return fig 
+
+    def find_k_shortest_paths_cost(self, origin: str, destination: str, has_visa: bool, k: int = 4):
+        """
+        Devuelve las k rutas más baratas (por costo) entre origen y destino.
+        Retorna una lista de tuplas (costo_total, ruta).
+        """
+        import heapq
+        current_graph = self.get_filtered_graph(has_visa)
+        if origin not in current_graph or destination not in current_graph:
+            return [(None, "Origen o destino no accesible sin visa o no existe.")]
+        try:
+            # Usar Yen's algorithm para k-shortest paths
+            paths = list(nx.shortest_simple_paths(current_graph, origin, destination, weight='cost'))
+            results = []
+            for path in paths[:k]:
+                cost = 0
+                for i in range(len(path)-1):
+                    cost += current_graph[path[i]][path[i+1]]['cost']
+                results.append((cost, path))
+            return results
+        except nx.NetworkXNoPath:
+            return [(None, "No se encontró una ruta por costo entre los destinos seleccionados.")]
+        except Exception as e:
+            return [(None, f"Error al calcular las rutas por costo: {e}")] 

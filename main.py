@@ -7,11 +7,13 @@ from travel_graph import TravelGraph
 # Importar para incrustar Matplotlib en Tkinter
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+import matplotlib
 
 # Configuración de customtkinter
 ctk.set_appearance_mode("System")  # Modes: "System" (default), "Dark", "Light"
 ctk.set_default_color_theme("blue")  # Themes: "blue" (default), "green", "dark-blue"
 
+# matplotlib.use('Agg')
 class MetroTravelApp(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -161,7 +163,7 @@ class MetroTravelApp(ctk.CTk):
 
         self.draw_graph(origin=None, destination=None, path=None)
 
-    def update_results_display(self, result_type, value, path_list):
+    def update_results_display(self, result_type, value, path_list, extra_routes=None):
         self.path_text.configure(state="normal")
         self.path_text.delete("0.0", "end")
         if value is None:
@@ -169,7 +171,15 @@ class MetroTravelApp(ctk.CTk):
         else:
             path_str = " -> ".join(path_list)
             if result_type == "costo":
-                self.path_text.insert("0.0", f"Costo Total: ${value:.2f}\nRuta: {path_str}")
+                self.path_text.insert("0.0", f"Costo Total: ${value:.2f}\nRuta: {path_str}\n")
+                if extra_routes:
+                    self.path_text.insert("end", "\nOtras rutas posibles (más caras):\n")
+                    for idx, (cost, path) in enumerate(extra_routes, start=2):
+                        if cost is not None:
+                            path_str = " -> ".join(path)
+                            self.path_text.insert("end", f"Ruta {idx}: ${cost:.2f} | {path_str}\n")
+                        else:
+                            self.path_text.insert("end", f"Ruta {idx}: {path}\n")
             elif result_type == "escalas":
                 self.path_text.insert("0.0", f"Número de Escalas: {value}\nRuta: {path_str}")
             
@@ -197,8 +207,13 @@ class MetroTravelApp(ctk.CTk):
             self.draw_graph(origin=origin, destination=destination, path=None) 
             return
 
-        cost, path = self.travel_graph_instance.find_shortest_path_cost(origin, destination, has_visa)
-        self.update_results_display("costo", cost, path)
+        rutas = self.travel_graph_instance.find_k_shortest_paths_cost(origin, destination, has_visa, k=4)
+        if rutas and rutas[0][0] is not None:
+            costo, ruta = rutas[0]
+            extra_rutas = rutas[1:] if len(rutas) > 1 else None
+            self.update_results_display("costo", costo, ruta, extra_routes=extra_rutas)
+        else:
+            self.update_results_display("costo", None, rutas[0][1])
 
     def find_fewest_stops_route(self):
         origin = self.origin_combobox.get()
@@ -219,7 +234,20 @@ class MetroTravelApp(ctk.CTk):
             return
 
         stops, path = self.travel_graph_instance.find_shortest_path_stops(origin, destination, has_visa)
-        self.update_results_display("escalas", stops, path)
+        if stops is not None and isinstance(path, list):
+            # Calcular el costo total de la ruta encontrada
+            current_graph = self.travel_graph_instance.get_filtered_graph(has_visa)
+            total_cost = 0
+            for i in range(len(path)-1):
+                total_cost += current_graph[path[i]][path[i+1]]['cost']
+            self.path_text.configure(state="normal")
+            self.path_text.delete("0.0", "end")
+            path_str = " -> ".join(path)
+            self.path_text.insert("0.0", f"Número de Escalas: {stops}\nCosto Total: ${total_cost:.2f}\nRuta: {path_str}")
+            self.draw_graph(origin=origin, destination=destination, path=path)
+            self.path_text.configure(state="disabled")
+        else:
+            self.update_results_display("escalas", None, path)
 
 
 if __name__ == "__main__":
