@@ -150,7 +150,6 @@ class TravelGraph:
         if origin not in current_graph or destination not in current_graph:
             return [(None, "Origen o destino no accesible sin visa o no existe.")]
         try:
-            # Usar Yen's algorithm para k-shortest paths
             paths = list(nx.shortest_simple_paths(current_graph, origin, destination, weight='cost'))
             results = []
             for path in paths[:k]:

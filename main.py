@@ -10,10 +10,10 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 import matplotlib
 
 # Configuración de customtkinter
-ctk.set_appearance_mode("System")  # Modes: "System" (default), "Dark", "Light"
-ctk.set_default_color_theme("blue")  # Themes: "blue" (default), "green", "dark-blue"
+ctk.set_appearance_mode("System")  
+ctk.set_default_color_theme("blue") 
 
-# matplotlib.use('Agg')
+
 class MetroTravelApp(ctk.CTk):
     def __init__(self):
         super().__init__()
